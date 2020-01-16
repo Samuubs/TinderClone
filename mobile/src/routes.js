@@ -5,7 +5,7 @@ import Main from './pages/Main';
 
 export default createAppContainer(
     createSwitchNavigator({
-        Login,
-        Main
+        Main,
+        Login
     })
 );

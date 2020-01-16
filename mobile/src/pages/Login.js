@@ -1,12 +1,32 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { AsyncStorage } from '@react-native-community/async-storage';
 import { StyleSheet, KeyboardAvoidingView, Image, TextInput, TouchableOpacity, Text, Platform } from 'react-native';
 
 import logo from '../assets/logo.png';
 
+import api from '../services/api';
+
 export default function Login({ navigation }) {
+    const [user, setUser] = useState('');
+
+    useEffect(() => {
+        AsyncStorage.getItem('user').then(user => {
+            if (user) {
+                navigation.navigate('Main', { user })
+            }
+        })
+    }, [])
+
     async function handleLogin() {
+        const response = await api.post('/devs', {
+            username: user
+        })
+
+        const { _id } = response.data;
         
-        navigation.navigate('Main');
+        await AsyncStorage.setItem('user', _id);
+
+        navigation.navigate('Main', { _id });
     }
 
     return (
@@ -22,6 +42,8 @@ export default function Login({ navigation }) {
                 placeholder="Digite seu usuário no GitHub"
                 placeholderTextColor="#999"
                 style={styles.input}
+                value={user}
+                onChangeText={text => setUser(text)}
             />
             <TouchableOpacity style={styles.button} onPress={handleLogin}>
                 <Text style={styles.buttonText}>Enviar</Text>
