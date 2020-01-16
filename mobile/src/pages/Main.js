@@ -1,53 +1,94 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { AsyncStorage } from '@react-native-community/async-storage';
 import { SafeAreaView, Image, StyleSheet, View, Text, TouchableOpacity } from 'react-native';
 
 import logo from '../assets/logo.png';
 
 import like from '../assets/like.png';
-import dislike from '../assets/dislike.png'
+import dislike from '../assets/dislike.png';
 
-export default function Main() {
-  return (
-    <SafeAreaView style={styles.container}>
-        <Image style={styles.logo} source={logo}/>
+import api from '../services/api';
 
-        <View style={styles.cardsContainer}>
-            <View style={[styles.card, { zIndex: 3 }]}>
-                <Image style={styles.avatar}  source={{uri: 'https://avatars1.githubusercontent.com/u/33751384?v=4'}}/>
-                <View style={styles.footer}>
-                    <Text style={styles.name}>Samuel Barbosa</Text>
-                    <Text style={styles.bio} numberOfLines={3}>Aluno da Universidade Federal do Ceará</Text>
-                </View>
-            </View>
+export default function Main({ navigation }) {
+    const id = navigation.getParam('user');
+    const [users, setUsers] = useState([]);
 
-            <View style={[styles.card, { zIndex: 2 }]}>
-                <Image style={styles.avatar}  source={{uri: 'https://avatars1.githubusercontent.com/u/33751384?v=4'}}/>
-                <View style={styles.footer}>
-                    <Text style={styles.name}>Samuel Barbosa</Text>
-                    <Text style={styles.bio} numberOfLines={3}>Aluno da Universidade Federal do Ceará</Text>
-                </View>
-            </View>
+    const [matchDev, setMatchDev] = useState(null);
 
-            <View style={[styles.card, { zIndex: 1 }]}>
-                <Image style={styles.avatar}  source={{uri: 'https://avatars1.githubusercontent.com/u/33751384?v=4'}}/>
-                <View style={styles.footer}>
-                    <Text style={styles.name}>Samuel Barbosa</Text>
-                    <Text style={styles.bio} numberOfLines={3}>Aluno da Universidade Federal do Ceará</Text>
-                </View>
-            </View>
-        </View>
+    useEffect(() => {
+        const socket = io('http://localhost:3333', {
+        query: { user: id }
+        });
 
-        <View style={styles.buttonsContainer}>
-            <TouchableOpacity style={styles.button}>
-                <Image source={dislike}/>
+        socket.on('match', dev => {
+        setMatchDev(dev);
+        })
+    }, [id]);
+
+    async function handleLike(id) {
+        await api.post(`/devs/${id}/likes`, null, {
+        headers: { user: id }
+        })
+
+        setUsers(users.filter(user => user._id != id));
+    }
+
+    async function handleDislike(id) {
+        await api.post(`/devs/${id}/dislikes`, null, {
+        headers: { user: id }
+        })
+
+        setUsers(users.filter(user => user._id != id));
+    }
+    
+    useEffect(() => {
+        async function loadUsers() {
+        const response = await api.get('/devs', {
+            headers: { 
+            user: id
+            }
+        })
+        setUsers(response.data);
+        }
+        loadUsers();
+    }, [id])
+
+    async function handleLogout() {
+        await AsyncStorage.clear();
+        navigation.navigate('Login');
+    }
+
+    return (
+        <SafeAreaView style={styles.container}>
+            <TouchableOpacity onPress={handleLogout}>
+                <Image style={styles.logo} source={logo}/>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.button}>
-                <Image source={like}/>
-            </TouchableOpacity>
-        </View>
-    </SafeAreaView>
-  );
+            <View style={styles.cardsContainer}>
+                { users.length === 0 ? <Text style={styles.empty}>Acabou :(</Text> 
+                :
+                (users.map((user, index) => (
+                    <View key={user._id} style={[styles.card, { zIndex: users.length - index }]}>
+                        <Image style={styles.avatar}  source={{ uri: user.avatar }}/>
+                        <View style={styles.footer}>
+                            <Text style={styles.name}>{user.name}</Text>
+                            <Text style={styles.bio} numberOfLines={3}>{user.bio}</Text>
+                        </View>
+                    </View>
+                )))}
+            </View>
+
+            <View style={styles.buttonsContainer}>
+                <TouchableOpacity style={styles.button}>
+                    <Image source={dislike}/>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.button}>
+                    <Image source={like}/>
+                </TouchableOpacity>
+            </View>
+        </SafeAreaView>
+    );
 }
 
 const styles = StyleSheet.create({
@@ -127,6 +168,13 @@ const styles = StyleSheet.create({
             width: 0,
             height: 2
         }
+    },
+
+    empty: {
+        alignSelf: 'center',
+        color: '#999',
+        fontSize: 24,
+        fontWeight: 'bold'
     }
 
 });
