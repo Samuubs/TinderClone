@@ -25,20 +25,23 @@ export default function Main({ navigation }) {
         })
     }, [id]);
 
-    async function handleLike(id) {
-        await api.post(`/devs/${id}/likes`, null, {
+    async function handleLike() {
+        const [ user, ...rest ] = users;
+
+        await api.post(`/devs/${user._id}/likes`, null, {
         headers: { user: id }
         })
 
-        setUsers(users.filter(user => user._id != id));
+        setUsers(rest);
     }
 
-    async function handleDislike(id) {
-        await api.post(`/devs/${id}/dislikes`, null, {
+    async function handleDislike() {
+        const [ user, ...rest ] = users;
+        await api.post(`/devs/${user._id}/dislikes`, null, {
         headers: { user: id }
         })
 
-        setUsers(users.filter(user => user._id != id));
+        setUsers(rest);
     }
     
     useEffect(() => {
@@ -78,15 +81,17 @@ export default function Main({ navigation }) {
                 )))}
             </View>
 
-            <View style={styles.buttonsContainer}>
-                <TouchableOpacity style={styles.button}>
-                    <Image source={dislike}/>
-                </TouchableOpacity>
+            {user.length > 0 && (
+                <View style={styles.buttonsContainer}>
+                    <TouchableOpacity style={styles.button} onPress={handleDislike}>
+                        <Image source={dislike}/>
+                    </TouchableOpacity>
 
-                <TouchableOpacity style={styles.button}>
-                    <Image source={like}/>
-                </TouchableOpacity>
-            </View>
+                    <TouchableOpacity style={styles.button} onPress={handleLike}>
+                        <Image source={like}/>
+                    </TouchableOpacity>
+                </View>
+            )}
         </SafeAreaView>
     );
 }
